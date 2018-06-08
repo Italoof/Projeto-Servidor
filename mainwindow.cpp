@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent), ui(new Ui::MainWindow){
     ui->setupUi(this);
     socket = new QTcpSocket(this);
+    nTimers=0;
 
     connect(ui->pushButtonConnect,
             SIGNAL(clicked(bool)),
@@ -20,36 +21,68 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->pushButtonStart,
             SIGNAL(clicked(bool)),
             this,
-            SLOT(start()));
+            SLOT(startButtom()));
+
+    connect(ui->pushButtonStop,
+            SIGNAL(clicked(bool)),
+            this,
+            SLOT(stopButtom()));
 }
 
-void MainWindow::start(){
-    startTimer(ui->horizontalSliderTiming->value());
+void MainWindow::startButtom(){
+    if(nTimers==0){
+
+        str="<font color=\"red\">Start</font></i>";
+        ui->textBrowser->append(str);
+
+        id=startTimer(1000/ui->horizontalSliderTiming->value());
+
+        nTimers=1;
+    }
+}
+
+void MainWindow::stopButtom(){
+    if(nTimers==1){
+
+        str="<font color=\"red\">Stop</font></i>";
+        ui->textBrowser->append(str);
+
+        killTimer(id);
+
+        nTimers=0;
+    }
 }
 
 void MainWindow::tcpConnect(){
     socket->connectToHost(ui->lineEdit->text(),1234);
     if(socket->waitForConnected(3000)){
+        str= "<font color=\"red\">Connected</font></i>";
         qDebug() << "Connected";
+        ui->textBrowser->append(str);
     }
     else{
+        str="<font color=\"red\">Disconnected</font></i>";
         qDebug() << "Disconnected";
+        ui->textBrowser->append(str);
     }
 }
 
 void MainWindow::tcpDisconnect(){
     socket->disconnectFromHost();
     if(socket->waitForConnected(3000)){
-        qDebug() << "Connected";
+        str="<font color=\"red\">Connected</font></i>";
+        qDebug() << "Disconnected";
+        ui->textBrowser->append(str);
     }
     else{
+        str="<font color=\"red\">Disconnected</font></i>";
         qDebug() << "Disconnected";
+        ui->textBrowser->append(str);
     }
 }
 
 void MainWindow::putData(){
     QDateTime datetime;
-    QString str;
     qint64 msecdate;
 
     if(socket->state()== QAbstractSocket::ConnectedState){
@@ -57,8 +90,9 @@ void MainWindow::putData(){
         msecdate = QDateTime::currentDateTime().toMSecsSinceEpoch();
         str = "set "+ QString::number(msecdate) + " " +
                 QString::number(((double)qrand()/RAND_MAX)*(ui->horizontalSliderMax->value()-ui->horizontalSliderMin->value())+
-                                ui->horizontalSliderMin->value())+"\r\n";
+                                ui->horizontalSliderMin->value());
 
+        ui->textBrowser->append(str);
         qDebug() << str;
         qDebug() << socket->write(str.toStdString().c_str()) << " bytes written";
         if(socket->waitForBytesWritten(3000)){
